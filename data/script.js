@@ -49,8 +49,6 @@ function ws_onopen() {
 //   debug.innerHTML = plate_angle.toFixed(1);
 // }
 
-window.onload = init;
-
 function showData(azimuth) {
   // gamma: Tilting the device from left to right. Tilting the device to the right will result in a positive value.
   // beta: Tilting the device from the front to the back. Tilting the device to the front will result in a positive value.

@@ -1,53 +1,127 @@
 <!DOCTYPE html>
-<html lang="en" >
-	<head>
-		<meta charset="UTF-8">
-		<title>Rotator Compass</title>
-		<meta name="viewport" content="width=device-width, initial-scale=0.7">
-		<link rel="stylesheet" href="./style.css">
-		<!-- <link rel="stylesheet" href="./bootstrap.min.css"> -->
+<html lang="en">
 
-		<!-- Favicons -->
-		<link rel="apple-touch-icon" sizes="57x57" href="./apple-icon-57x57.png">
-		<link rel="apple-touch-icon" sizes="60x60" href="./apple-icon-60x60.png">
-		<link rel="apple-touch-icon" sizes="72x72" href="./apple-icon-72x72.png">
-		<link rel="apple-touch-icon" sizes="76x76" href="./apple-icon-76x76.png">
-		<link rel="apple-touch-icon" sizes="114x114" href="./apple-icon-114x114.png">
-		<link rel="apple-touch-icon" sizes="120x120" href="./apple-icon-120x120.png">
-		<link rel="apple-touch-icon" sizes="144x144" href="./apple-icon-144x144.png">
-		<link rel="apple-touch-icon" sizes="152x152" href="./apple-icon-152x152.png">
-		<link rel="apple-touch-icon" sizes="180x180" href="./apple-icon-180x180.png">
-		<link rel="icon" type="image/png" sizes="192x192"  href="./android-icon-192x192.png">
-		<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
-		<link rel="icon" type="image/png" sizes="96x96" href="./favicon-96x96.png">
-		<link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
-		<link rel="manifest" href="./manifest.json">
-		<meta name="msapplication-TileColor" content="#ffffff">
-		<meta name="msapplication-TileImage" content="./ms-icon-144x144.png">
-		<meta name="theme-color" content="#ffffff">
+<head>
+	<meta charset="UTF-8">
+	<title>Rotator Compass</title>
+	<meta name="viewport" content="width=device-width, initial-scale=0.7">
+	<link rel="stylesheet" href="./style.css">
+	<!-- <link rel="stylesheet" href="./bootstrap.min.css"> -->
 
-	</head>
+	<!-- Favicons -->
+	<link rel="apple-touch-icon" sizes="57x57" href="./apple-icon-57x57.png">
+	<link rel="apple-touch-icon" sizes="60x60" href="./apple-icon-60x60.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="./apple-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="76x76" href="./apple-icon-76x76.png">
+	<link rel="apple-touch-icon" sizes="114x114" href="./apple-icon-114x114.png">
+	<link rel="apple-touch-icon" sizes="120x120" href="./apple-icon-120x120.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="./apple-icon-144x144.png">
+	<link rel="apple-touch-icon" sizes="152x152" href="./apple-icon-152x152.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="./apple-icon-180x180.png">
+	<link rel="icon" type="image/png" sizes="192x192" href="./android-icon-192x192.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="96x96" href="./favicon-96x96.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+	<link rel="manifest" href="./manifest.json">
+	<meta name="msapplication-TileColor" content="#ffffff">
+	<meta name="msapplication-TileImage" content="./ms-icon-144x144.png">
+	<meta name="theme-color" content="#ffffff">
 
-	<body>
-		<script src="./script.js"></script>
-		<script>
-			docReady(init);
-		</script>
-		<!-- <h1>Rotator</h1> -->
-		<div class="compass">
-			<div class="arrow" id="arrow"></div>
-			<div class="disc" id="disc"></div>
-		</div>
-		
-		<h1 class="dir"><span id="azimuth">&#128161;</span></h1>
-		<!-- <h2 class="bea"><span id="bearing"></span></h2> -->
-		<h3 class="status"><span id="status">NOT CONNECTED</span></h3>
+	<!-- <script src="./script.js"></script> -->
+	<script>
+		// function init() {
+		// 	document.getElementById("status").innerHTML = "CONNECTING";
+		// 	ws = new WebSocket('ws://' + document.location.host + '/ws', ['compass']);
 
-		<!-- <div id="notice"></div> -->
+		// 	ws.onopen = ws_onopen;
+		// 	ws.onclose = function () { document.getElementById("status").innerHTML = "CLOSED"; };
+		// 	ws.onerror = function () { document.getElementById("status").innerHTML = "ERROR"; };
+		// 	ws.onmessage = ws_onmessage;
+		// }
 
-		<footer>
-			<pre class="link">Coded with &#10084;&#65039; by <a href="mailto:tekk.sk@gmail.com">OM7TEK</a></pre>
-		</footer>
-		<!-- <script  src="./bootstrap.min.js"></script> -->
-	</body>
+		function showData(azimuth) {
+			// Call the function to use the data on the page.
+			document.getElementById('azimuth').innerHTML = Math.ceil(azimuth) + "&deg;";
+			// rotate the needle arrow on the compass
+			rotate(azimuth);
+		}
+
+		function rotate(azimuth) {
+			const arrow = document.getElementById('arrow');
+			// Rotate the arrow of the compass. - CSS transform
+			arrow.style.transform = `rotate(${azimuth}deg)`;
+			arrow.style.webkitTransform = `rotate(${azimuth}deg)`;
+			arrow.style.MozTransform = `rotate(${azimuth}deg)`;
+		}
+	</script>
+</head>
+
+<body>
+
+	<!-- <h1>Rotator</h1> -->
+	<div class="compass">
+		<div class="arrow" id="arrow"></div>
+		<div class="disc" id="disc"></div>
+	</div>
+
+	<h1 class="dir"><span id="azimuth">&#128161;</span></h1>
+	<p><small><span id="dataType">Azimuth</span></small></p>
+	<!-- <h2 class="bea"><span id="bearing"></span></h2> -->
+	<h3 class="status"><span id="status">NOT CONNECTED</span></h3>
+
+	<p><button id="button" class="button">Toggle</button></p>
+
+	<footer>
+		<pre class="link">Coded with &#10084;&#65039; by <a href="mailto:tekk.sk@gmail.com">OM7TEK</a></pre>
+	</footer>
+	<!-- <script  src="./bootstrap.min.js"></script> -->
+
+	<script>
+		var gateway = `ws://${window.location.hostname}/ws`;
+		var websocket;
+		var angle = 0;
+
+		window.addEventListener('load', onLoad);
+
+		function initWebSocket() {
+			console.log('Trying to open a WebSocket connection...');
+			document.getElementById("status").innerHTML = "CONNECTING";
+			websocket = new WebSocket(gateway);
+			websocket.onopen = onOpen;
+			websocket.onclose = onClose;
+			websocket.onmessage = onMessage;
+		}
+
+		function onOpen(event) {
+			console.log('Connection opened');
+			document.getElementById("status").innerHTML = "OK";
+		}
+
+		function onClose(event) {
+			console.log('Connection closed');
+			document.getElementById("status").innerHTML = "CLOSED";
+			setTimeout(initWebSocket, 2000);
+		}
+
+		function onMessage(event) {
+			angle = Number(event.data);
+			showData(angle ?? 0);
+		}
+
+		function onLoad(event) {
+			initWebSocket();
+			//initButton();
+		}
+
+		function initButton() {
+			document.getElementById('button').addEventListener('click', toggle);
+		}
+
+		function toggle() {
+			websocket.send('toggle');
+		}
+	</script>
+
+</body>
+
 </html>

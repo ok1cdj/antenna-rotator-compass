@@ -22,6 +22,7 @@
 #include <ESP8266mDNS.h>
 #endif
 // Async Webserver
+#include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <SPIFFSEditor.h>
 // Servo - for future purposes
@@ -29,24 +30,103 @@
 // Event Scheduler
 #include "Tasker.h"
 
-Tasker tasker;
-QMC5883LCompass compass;
-
+// Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 AsyncEventSource events("/events");
+
+Tasker tasker;
+QMC5883LCompass compass;
 // Servo servo; // TODO: servo
 
-const int MagnetometerSteps = 10;
-const bool MagnetometerAdvancedSmoothing = true;
+const char *ssid = "COMPASS";
+const char *password = "";
+const char *hostName = "compass";
+const char *http_username = "admin";
+const char *http_password = "admin";
+const int MAGNETOMETER_STEPS = 10;
+const bool MAGNETOMETER_ADVANCED_SMOOTHING = true;
+
+const int frequency = 5;
 
 int x = 0, y = 0, z = 0, azimuth = 0, bearing = 0; // these are the results from the compass
 char direction[3];                                 // i.e. NNW
 int angle = 0;                                     // used for controlling the rotator from the frontend app
+bool ledState = false;
 // const int servoPin = 13; // TODO: servo
 
-void setupCompass(int steps, bool advanced)
+void getCompassData()
 {
+  compass.read();
+  // Get Azimuth, Bearing, Direction
+  azimuth = compass.getAzimuth();
+  bearing = compass.getBearing(azimuth);
+  compass.getDirection(direction, azimuth);
+}
+
+void printCompassData()
+{
+  if (!azimuth && !bearing)
+  {
+    Serial.println("# NO COMPASS DATA #");
+    Serial.println();
+    return;
+  }
+
+  Serial.print("Azimuth: ");
+  Serial.print(azimuth);
+  Serial.print(" Bearing: ");
+  Serial.print(bearing);
+  Serial.print(" Direction: ");
+  Serial.print(direction[0]);
+  Serial.print(direction[1]);
+  Serial.println(direction[2]);
+}
+
+void sendData()
+{
+  ws.textAll(String(azimuth));
+}
+
+void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
+{
+  AwsFrameInfo *info = (AwsFrameInfo *)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
+  {
+    data[len] = 0;
+    if (strcmp((char *)data, "toggle") == 0)
+    {
+      ledState = !ledState;
+      sendData();
+    }
+  }
+}
+
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, 
+            void *arg, uint8_t *data, size_t len)
+{
+  switch (type)
+  {
+  case WS_EVT_CONNECT:
+    Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+    break;
+  case WS_EVT_DISCONNECT:
+    Serial.printf("WebSocket client #%u disconnected\n", client->id());
+    break;
+  case WS_EVT_DATA:
+    handleWebSocketMessage(arg, data, len);
+    break;
+  case WS_EVT_PONG:
+  case WS_EVT_ERROR:
+    break;
+  }
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  Serial.setDebugOutput(true);
+
   compass.init();
   /*
    *   call setSmoothing(STEPS, ADVANCED);
@@ -58,199 +138,7 @@ void setupCompass(int steps, bool advanced)
    *                     Turning this feature on will results in even more smoothing but will take longer to process.
    *                     
    */
-  compass.setSmoothing(steps, advanced);
-}
-
-void getCompassData()
-{
-  // Read compass values
-  compass.read();
-
-  // Return XYZ readings
-  // x = compass.getX();
-  // y = compass.getY();
-  // z = compass.getZ();
-
-  // Get Azimuth, Bearing, Direction
-  azimuth = compass.getAzimuth();
-  bearing = compass.getBearing(azimuth);
-  compass.getDirection(direction, azimuth);
-}
-
-void printCompassData()
-{
-  if (!azimuth && !bearing)
-  {
-    Serial.println();
-    Serial.println("###############################");
-    Serial.println("#        NO COMPASS DATA      #");
-    Serial.println("###############################");
-    Serial.println();
-    return;
-  }
-
-  Serial.println("#################################");
-  Serial.print("Azimuth: ");
-  Serial.print(azimuth);
-  Serial.print(" Bearing: ");
-  Serial.print(bearing);
-  Serial.print(" Direction: ");
-  Serial.print(direction[0]);
-  Serial.print(direction[1]);
-  Serial.println(direction[2]);
-}
-
-// TODO: Maybe in the future use JSON
-// char* getJsonResponse() { // TODO: Later we will use this istead of just passing one number (Azimuth)
-//   String json = String("{\"x\":\"") + String(x) + String("\",") +
-//   String("\"y\":\"") + String(y) + String("\",") +
-//   String("\"z\":\"") + String(z) + String("\",") +
-//   String("\"az\":\"") + String(azimuth) + String("\",") +
-//   String("\"be\":\"") + String(bearing) + String("\",") +
-//   String("\"dir\":\"") + String(direction[0]) + String(direction[1]) + String(direction[2]) + String("\"") +
-//   String("}");
-
-//   return (char*)json.c_str();
-// }
-
-void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
-{
-  if (type == WS_EVT_CONNECT)
-  {
-    Serial.printf("ws[%s][%u] connect\n", server->url(), client->id());
-    client->printf("Hello Client %u :)", client->id());
-    client->ping();
-  }
-  else if (type == WS_EVT_DISCONNECT)
-  {
-    Serial.printf("ws[%s][%u] disconnect\n", server->url(), client->id());
-  }
-  else if (type == WS_EVT_ERROR)
-  {
-    Serial.printf("ws[%s][%u] error(%u): %s\n", server->url(), client->id(), *((uint16_t *)arg), (char *)data);
-  }
-  else if (type == WS_EVT_PONG)
-  {
-    Serial.printf("ws[%s][%u] pong[%u]: %s\n", server->url(), client->id(), len, (len) ? (char *)data : "");
-  }
-  else if (type == WS_EVT_DATA)
-  {
-    AwsFrameInfo *info = (AwsFrameInfo *)arg;
-    String msg = "";
-    if (info->final && info->index == 0 && info->len == len)
-    {
-      //the whole message is in a single frame and we got all of it's data
-      Serial.printf("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT) ? "text" : "binary", info->len);
-
-      if (info->opcode == WS_TEXT)
-      {
-        for (size_t i = 0; i < info->len; i++)
-        {
-          msg += (char)data[i];
-        }
-      }
-      else
-      {
-        char buff[3];
-        for (size_t i = 0; i < info->len; i++)
-        {
-          sprintf(buff, "%02x ", (uint8_t)data[i]);
-          msg += buff;
-        }
-      }
-      Serial.printf("%s\n", msg.c_str());
-
-      if (msg == "GET")
-      {
-        //TODO: For now, let's suppose that we only have the angle from the compass and not from the frontend rotator control app
-        //angle = azimuth;
-
-        if (info->opcode == WS_TEXT)
-          client->text(String(azimuth));
-        else
-          client->binary(String(azimuth));
-      }
-      else
-      {
-        /*
-          CAUTION!
-          This is very experimental and currently not supported by the frontend JS
-          However, you can modify and use it as you like ;)
-        */
-
-        //angle = atoi(msg.c_str()); // get the angle (azimuth) where the rotator control motor should steer the antenna
-        //Serial.println("New angle: " + String(angle));
-        // now you can play with motors control as you like
-      }
-    }
-    else
-    {
-      //message is comprised of multiple frames or the frame is split into multiple packets
-      if (info->index == 0)
-      {
-        if (info->num == 0)
-          Serial.printf("ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
-        Serial.printf("ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
-      }
-
-      Serial.printf("ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
-
-      if (info->opcode == WS_TEXT)
-      {
-        for (size_t i = 0; i < len; i++)
-        {
-          msg += (char)data[i];
-        }
-      }
-      else
-      {
-        char buff[3];
-        for (size_t i = 0; i < len; i++)
-        {
-          sprintf(buff, "%02x ", (uint8_t)data[i]);
-          msg += buff;
-        }
-      }
-      Serial.printf("%s\n", msg.c_str());
-
-      if (msg == "GET")
-      {
-        if (info->opcode == WS_TEXT)
-          client->text(String(azimuth));
-        else
-          client->binary(String(azimuth));
-      }
-      else
-      {
-        // TODO: experimental as well, see upper comments
-        angle = atoi(msg.c_str());
-        Serial.println("New angle: " + String(angle));
-      }
-
-      if ((info->index + len) == info->len)
-      {
-        Serial.printf("ws[%s][%u] frame[%u] end[%llu]\n", server->url(), client->id(), info->num, info->len);
-        if (info->final)
-        {
-          Serial.printf("ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
-        }
-      }
-    }
-  }
-}
-
-const char *ssid = "COMPASS";
-const char *password = "";
-const char *hostName = "compass";
-const char *http_username = "admin";
-const char *http_password = "admin";
-
-void setup()
-{
-  Serial.begin(115200);
-  Serial.setDebugOutput(true);
-
-  setupCompass(MagnetometerSteps, MagnetometerAdvancedSmoothing);
+  compass.setSmoothing(MAGNETOMETER_STEPS, MAGNETOMETER_ADVANCED_SMOOTHING);
 
   WiFi.softAP(ssid);
 
@@ -263,8 +151,9 @@ void setup()
   //servo.attach(servoPin, 1000, 2000);
 
   // Task for getting the values of compass
-  tasker.setInterval(getCompassData, 50);
-  tasker.setInterval(printCompassData, 300);
+  tasker.setInterval(getCompassData, frequency);
+  tasker.setInterval(sendData, frequency);
+  tasker.setInterval(printCompassData, 3000);
 
   //Send OTA events to the browser
   ArduinoOTA.onStart([]() { events.send("Update Start", "ota"); });
@@ -292,17 +181,11 @@ void setup()
   ArduinoOTA.begin();
 
   MDNS.addService("http", "tcp", 80);
-  MDNS.addService("https", "tcp", 443);
 
   SPIFFS.begin();
 
-  ws.onEvent(onWsEvent);
+  ws.onEvent(onEvent);
   server.addHandler(&ws);
-
-  events.onConnect([](AsyncEventSourceClient *client) {
-    client->send("hello!", NULL, millis(), 1000);
-  });
-
   server.addHandler(&events);
 
 #ifdef ESP32
