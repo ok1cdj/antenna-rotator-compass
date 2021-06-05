@@ -2,7 +2,7 @@
 
 #### By Peter "**Tekk**" [OM7TEK](https://www.om7tek.com)
 
-We had a custom manual rotator and needed a remote compass for it.
+My friend OM7AMO created a custom manual rotator and needed a remote compass for it, just to be sure on what azimuth the 2xHB9CV is pointing at in night.
 
 ## ESP32 + QMC5883L (HMC5883)
 
@@ -16,7 +16,7 @@ Data is transferred over **ultra-low-latency** Websocket protocol and it has ver
 - Low latency Websocket link is established using `ESPAsyncWebServer` and the compass is displayed on frontend app
 - You can see connection status on the web as well
 
-## Improvements
+## Future work
 - Add motor control for automatically rotating the antenna
   - Project is already prepared for this, you just need to uncomment some of the code
   

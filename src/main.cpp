@@ -5,7 +5,7 @@
     License: GPL
 */
 
-// HMC5883
+// HMC5883L = QMC5883L (on chinese $2 compass clones from usual sources)
 #include <QMC5883LCompass.h>
 // Over the air upgrades
 #include <ArduinoOTA.h>
@@ -46,8 +46,7 @@ const char *http_username = "admin";
 const char *http_password = "admin";
 const int MAGNETOMETER_STEPS = 10;
 const bool MAGNETOMETER_ADVANCED_SMOOTHING = true;
-
-const int frequency = 5;
+const int MS_BETWEEN_SAMPLES = 100;
 
 int x = 0, y = 0, z = 0, azimuth = 0, bearing = 0; // these are the results from the compass
 char direction[3];                                 // i.e. NNW
@@ -69,7 +68,6 @@ void printCompassData()
   if (!azimuth && !bearing)
   {
     Serial.println("# NO COMPASS DATA #");
-    Serial.println();
     return;
   }
 
@@ -102,8 +100,8 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
   }
 }
 
-void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, 
-            void *arg, uint8_t *data, size_t len)
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
+             void *arg, uint8_t *data, size_t len)
 {
   switch (type)
   {
@@ -151,8 +149,8 @@ void setup()
   //servo.attach(servoPin, 1000, 2000);
 
   // Task for getting the values of compass
-  tasker.setInterval(getCompassData, frequency);
-  tasker.setInterval(sendData, frequency);
+  tasker.setInterval(getCompassData, MS_BETWEEN_SAMPLES);
+  tasker.setInterval(sendData, MS_BETWEEN_SAMPLES);
   tasker.setInterval(printCompassData, 3000);
 
   //Send OTA events to the browser
