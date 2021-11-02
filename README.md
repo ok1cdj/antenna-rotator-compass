@@ -9,6 +9,9 @@ My friend OM7AMO created a custom manual rotator and needed a remote compass for
 This project aims to transfer current antenna orientation *Azimuth* with manual rotators.
 Data is transferred over **ultra-low-latency** Websocket protocol and it has very appealing and responsive frontend app design that runs in the browser on a mobile phone or a computer from the ESP32.
 
+## Project blogpost
+[Here](https://www.om7tek.com/2021/open-source-remote-compass-for-your-antenna-rotator/) you can find detailed information about this project
+
 ## Usage
 - ESP32 creates WIFI Soft AP `COMPASS`, no password required
 - User connects to the WIFI AP and enters URL [http://compass.local](http://compass.local) in the browser
